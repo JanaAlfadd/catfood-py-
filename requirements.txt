@@ -1,6 +1,5 @@
 Flask
 pytz
 gunicorn
-tinydb
-
+flask-cors
 supabase
