@@ -22,64 +22,41 @@ def get_today():
 def get_logs_for_today():
     today = get_today()
     result = supabase.table("logs").select("*").eq("date", today).execute()
+
     logs = {cat: {"log": ""} for cat in CATS}
     for row in result.data:
-        logs[row["cat"]] = {"log": row["log"]}
+        logs[row["cat"]]["log"] += row["log"] + "\n"
     return logs
 
-def upsert_log(cat, log):
+
+def add_log(cat, action, value):
     today = get_today()
-    response = supabase.table("logs").upsert({
+    current_time = datetime.now(pytz.timezone("Asia/Kuwait")).strftime("%I:%M %p")
+
+    log_entry = f"{action}: {value} ({current_time})"
+
+    response = supabase.table("logs").insert({
         "date": today,
         "cat": cat,
-        "log": log
+        "log": log_entry
     }).execute()
     return response
 
-# --- Routes ---
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        cat = request.form["cat"]
-        action = request.form["action"]
-        value = request.form["value"]
-        meal_type = request.form.get("type", "")
-        current_time = datetime.now(pytz.timezone("Asia/Kuwait")).strftime("%I:%M %p")
-
-        icons = {"raw": "🥩", "wet": "💧", "dry": "🍪"}
-        food_icon = icons.get(meal_type, "")
-        if action == "treat":
-            log_entry = f"treat: {value} ({current_time})"
-        elif action == "meal":
-            log_entry = f"meal: {value} {food_icon} ({current_time})"
-        else:
-            log_entry = f"{action}: {current_time}"
-
-        upsert_log(cat, log_entry)
-        return redirect("/")
-
-    logs = get_logs_for_today()
-    return render_template("index.html", cats=CATS, today=get_today(), data=logs)
-
-# --- AJAX route for frontend logging ---
 @app.route("/log", methods=["POST"])
-def log():
+def log_action():
     data = request.get_json()
-    cat = data.get("cat")
-    action = data.get("action")
-    value = data.get("value")
+    cat = data["cat"]
+    action = data["action"]
+    value = data["value"]
 
-    current_time = datetime.now(pytz.timezone("Asia/Kuwait")).strftime("%I:%M %p")
+    add_log(cat, action, value)
+    return {"status": "ok"}
 
-    if action == "treat":
-        log_entry = f"treat: {value} ({current_time})"
-    elif action == "meal":
-        log_entry = f"meal: {value} ({current_time})"
-    else:
-        log_entry = f"{action}: {current_time}"
 
-    upsert_log(cat, log_entry)
-    return jsonify({"status": "ok", "cat": cat, "log": log_entry})
+@app.route("/")
+def root():
+    return {"status": "ok", "message": "Backend is running"}
+
 
 @app.route("/edit_time", methods=["POST"])
 def edit_time():
@@ -109,6 +86,7 @@ def download_logs():
         'Content-Type': 'text/plain',
         'Content-Disposition': f'attachment; filename="cat_log_{today}.txt"'
     }
+
 @app.route("/register_token", methods=["POST"])
 def register_token():
     data = request.get_json()
@@ -121,6 +99,7 @@ def register_token():
     supabase.table("tokens").upsert({"token": token}).execute()
 
     return jsonify({"status": "ok"})
+
 @app.route("/toggle_global_mute", methods=["POST"])
 def toggle_global_mute():
     # We'll use a single-row "settings" table in Supabase for this
