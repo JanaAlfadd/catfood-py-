@@ -121,6 +121,23 @@ def register_token():
     supabase.table("tokens").upsert({"token": token}).execute()
 
     return jsonify({"status": "ok"})
+@app.route("/toggle_global_mute", methods=["POST"])
+def toggle_global_mute():
+    # We'll use a single-row "settings" table in Supabase for this
+    result = supabase.table("settings").select("muted").eq("id", 1).execute()
+
+    current_muted = False
+    if result.data:
+        current_muted = result.data[0]["muted"]
+
+    new_muted = not current_muted
+
+    supabase.table("settings").upsert({
+        "id": 1,   # single row only
+        "muted": new_muted
+    }).execute()
+
+    return jsonify({"muted": new_muted})
 
 # --- Run app ---
 if __name__ == "__main__":
