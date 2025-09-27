@@ -1,15 +1,21 @@
 from flask import Flask, render_template, request, redirect, jsonify
 from datetime import datetime
 import pytz
+from flask_cors import CORS
 from supabase import create_client, Client
 
+# --- Supabase setup ---
 SUPABASE_URL = "https://dieappiptenklzrihyud.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRpZWFwcGlwdGVua2x6cmloeXVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MDUxMTgsImV4cCI6MjA2NjA4MTExOH0._6YNeKIaze4sDJuDE3oWgMOgjD9xvz6lFwjkgTn7UVY"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# --- Flask setup ---
 app = Flask(__name__)
+CORS(app)   # <-- allow Firebase frontend to talk to Render backend
+
 CATS = ["Bu3teqa", "Salbokh", "Cruella"]
 
+# --- Helpers ---
 def get_today():
     return datetime.now(pytz.timezone("Asia/Kuwait")).strftime("%Y-%m-%d")
 
@@ -30,6 +36,7 @@ def upsert_log(cat, log):
     }).execute()
     return response
 
+# --- Routes ---
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
@@ -54,6 +61,26 @@ def index():
     logs = get_logs_for_today()
     return render_template("index.html", cats=CATS, today=get_today(), data=logs)
 
+# --- AJAX route for frontend logging ---
+@app.route("/log", methods=["POST"])
+def log():
+    data = request.get_json()
+    cat = data.get("cat")
+    action = data.get("action")
+    value = data.get("value")
+
+    current_time = datetime.now(pytz.timezone("Asia/Kuwait")).strftime("%I:%M %p")
+
+    if action == "treat":
+        log_entry = f"treat: {value} ({current_time})"
+    elif action == "meal":
+        log_entry = f"meal: {value} ({current_time})"
+    else:
+        log_entry = f"{action}: {current_time}"
+
+    upsert_log(cat, log_entry)
+    return jsonify({"status": "ok", "cat": cat, "log": log_entry})
+
 @app.route("/edit_time", methods=["POST"])
 def edit_time():
     data = request.get_json()
@@ -69,21 +96,20 @@ def edit_time():
 
     return ("", 204)
 
-
 @app.route("/download")
 def download_logs():
     today = get_today()
     result = supabase.table("logs").select("*").eq("date", today).execute()
     
-    output = f"🐾 Feeding Log - {today}\\n\\n"
+    output = f"🐾 Feeding Log - {today}\n\n"
     for row in result.data:
-        output += f"{row['cat']}: {row['log']}\\n"
+        output += f"{row['cat']}: {row['log']}\n"
 
     return output, 200, {
         'Content-Type': 'text/plain',
-        'Content-Disposition': f'attachment; filename=\"cat_log_{today}.txt\"'
+        'Content-Disposition': f'attachment; filename="cat_log_{today}.txt"'
     }
 
+# --- Run app ---
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)
-
