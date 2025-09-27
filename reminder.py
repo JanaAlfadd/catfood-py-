@@ -41,6 +41,6 @@ def check_and_notify():
             for t in tokens:
                 send_push(t["token"], "Cat Feeding Reminder 🐾", msg)
 
+
 if __name__ == "__main__":
     check_and_notify()
-
