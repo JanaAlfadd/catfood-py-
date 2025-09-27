@@ -1,0 +1,5 @@
+Flask
+pytz
+gunicorn
+tinydb
+supabase-py
