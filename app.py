@@ -138,6 +138,13 @@ def toggle_global_mute():
     }).execute()
 
     return jsonify({"muted": new_muted})
+@app.route("/get_global_mute", methods=["GET"])
+def get_global_mute():
+    result = supabase.table("settings").select("muted").eq("id", 1).execute()
+    muted = False
+    if result.data:
+        muted = result.data[0]["muted"]
+    return jsonify({"muted": muted})
 
 # --- Run app ---
 if __name__ == "__main__":
