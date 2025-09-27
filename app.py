@@ -109,6 +109,18 @@ def download_logs():
         'Content-Type': 'text/plain',
         'Content-Disposition': f'attachment; filename="cat_log_{today}.txt"'
     }
+@app.route("/register_token", methods=["POST"])
+def register_token():
+    data = request.get_json()
+    token = data.get("token")
+
+    if not token:
+        return jsonify({"error": "no token"}), 400
+
+    # Save token in Supabase (tokens table)
+    supabase.table("tokens").upsert({"token": token}).execute()
+
+    return jsonify({"status": "ok"})
 
 # --- Run app ---
 if __name__ == "__main__":
