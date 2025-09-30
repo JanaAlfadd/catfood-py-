@@ -50,6 +50,19 @@ def log_action():
 
     return jsonify({"status": "ok", "cat": cat, "log": entry})
 
+def add_log(cat, action, value):
+    today = get_today()
+    current_time = datetime.now(pytz.timezone("Asia/Kuwait")).strftime("%I:%M %p")
+
+    log_entry = f"{action}: {value} ({current_time})"
+
+    response = supabase.table("logs").upsert({
+        "date": today,
+        "cat": cat,
+        "log": log_entry
+    }).execute()
+    return response
+
 
 # Return all logs for today merged per cat (for page refresh)
 @app.route("/logs_today", methods=["GET"])
