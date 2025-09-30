@@ -41,14 +41,15 @@ def log_action():
     ts = now_kw().strftime("%I:%M %p")
     entry = f"{action}: {value} ({ts})"
 
-supabase.table("logs").upsert({
-    "date": today_str(),
-    "cat": cat,
-    "log": entry
-}).execute()
+    # ✅ properly indented
+    supabase.table("logs").upsert({
+        "date": today_str(),
+        "cat": cat,
+        "log": entry
+    }).execute()
 
-    add_log(cat, action, value)
     return jsonify({"status": "ok", "cat": cat, "log": entry})
+
 
 # Return all logs for today merged per cat (for page refresh)
 @app.route("/logs_today", methods=["GET"])
