@@ -47,7 +47,7 @@ supabase.table("logs").upsert({
     "log": entry
 }).execute()
 
-
+    add_log(cat, action, value)
     return jsonify({"status": "ok", "cat": cat, "log": entry})
 
 # Return all logs for today merged per cat (for page refresh)
