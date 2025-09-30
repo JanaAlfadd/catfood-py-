@@ -41,7 +41,7 @@ def log_action():
     ts = now_kw().strftime("%I:%M %p")
     entry = f"{action}: {value} ({ts})"
 
-    supabase.table("logs").insert({
+    supabase.table("logs").upsert()({
         "date": today_str(),
         "cat": cat,
         "log": entry
@@ -78,7 +78,7 @@ def edit_time():
         supabase.table("logs").update({"log": new_log}).eq("id", latest_id).execute()
     else:
         # if nothing exists yet, insert a fresh row
-        supabase.table("logs").insert({
+        supabase.table("logs").upsert()({
             "date": today_str(),
             "cat": cat,
             "log": new_log
